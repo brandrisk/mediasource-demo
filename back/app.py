@@ -33,6 +33,10 @@ def upload_video():
     try:
         file = request.files['video']
         filename = f'{str(uuid.uuid4())}.mp4'
+
+        while os.path.exists(get_path(VIDEOS_DIR, filename)):
+            filename = f'{str(uuid.uuid4())}.mp4'
+
         path_in = get_path(TEMP_DIR, filename)
         file.save(path_in)
         mp4fragment_path = get_path(BENTO_DIR, 'bin', 'mp4fragment.exe')
@@ -41,16 +45,17 @@ def upload_video():
         stdout, stderr = p.communicate()
         os.remove(path_in)
 
-        if stdout:
-            resp = Response(filename)
-
-            if (app.debug):
-                resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
-            return resp
-        else:
+        if stderr and not os.path.exists(path_out):
             raise Exception()
+
+        resp = Response(filename)
+
+        if (app.debug):
+            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
+
+        return resp
     except:
+        os.remove(path_in)
         resp = Response('')
 
         if (app.debug):
@@ -73,7 +78,7 @@ def get_codecs(videoname):
         
         data = json.loads(stdout.decode())
         tracks = data['tracks']
-        codecs = [track['sample_descriptions'][0]['codecs_string'] for track in tracks]
+        codecs = [track['sample_descriptions'][0]['codecs_string'] for track in tracks if track['type'] in ['Audio', 'Video']]
         codecs_string = ','.join(codecs)
 
         resp = Response(codecs_string)
