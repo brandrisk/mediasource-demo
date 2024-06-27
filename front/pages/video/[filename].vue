@@ -14,7 +14,6 @@ const route = useRoute();
 
 
 <style scoped>
-
 .container {
     margin: auto;
     display: flex;

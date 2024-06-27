@@ -16,7 +16,8 @@ const props = defineProps({
     }
 });
 
-const serverURL = 'http://127.0.0.1:5000';
+const config = useRuntimeConfig();
+const serverUrl = config.public.serverUrl;
 const video = ref(null);
 const src = ref('');
 
@@ -33,12 +34,12 @@ function playOrPause() {
 }
 
 onMounted(async () => {
-    const videoURL = `${serverURL}/video/${props.filename}`;
-    
-    const res = await fetch(`${serverURL}/codecs/${props.filename}`);
+    const videoURL = `${serverUrl}/video/${props.filename}`;
+
+    const res = await fetch(`${serverUrl}/codecs/${props.filename}`);
     const codecs = await res.text();
     const mimeCodec = `video/mp4; codecs="${codecs}"`;
-    
+
     if ('MediaSource' in window && MediaSource.isTypeSupported(mimeCodec)) {
         const mediaSource = new MediaSource;
         src.value = URL.createObjectURL(mediaSource);
@@ -46,20 +47,20 @@ onMounted(async () => {
     } else {
         console.error('Unsupported MIME type or codec: ', mimeCodec);
     }
-    
+
     function sourceOpen(_) {
         const mediaSource = this;
         const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-        
+
         fetchAB(videoURL, function (buf) {
             sourceBuffer.addEventListener('updateend', function (_) {
                 mediaSource.endOfStream();
             });
-            
+
             sourceBuffer.appendBuffer(buf);
         });
     }
-    
+
     function fetchAB(url, cb) {
         fetch(url).then(res => res.arrayBuffer()).then(ab => cb(ab));
     }
