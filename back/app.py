@@ -42,7 +42,6 @@ def upload_video():
         os.remove(path_in)
 
         if stdout:
-            print(stdout)
             resp = Response(filename)
 
             if (app.debug):
@@ -52,7 +51,6 @@ def upload_video():
         else:
             raise Exception()
     except:
-        print('abc')
         resp = Response('')
 
         if (app.debug):
