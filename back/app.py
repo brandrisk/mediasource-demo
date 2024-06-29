@@ -3,10 +3,14 @@ import json
 import uuid
 import subprocess
 from flask import Flask, send_from_directory, Response, request
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ORIGIN = os.getenv('ORIGIN') or 'http://localhost:3000'
 
 app = Flask(__name__)
 
-DEV_ORIGIN = 'http://localhost:3000'
 TEMP_DIR = 'temp'
 VIDEOS_DIR = 'videos'
 BENTO_DIR = 'bento'
@@ -22,10 +26,7 @@ def get_video_list():
         vids.extend(files)
 
     resp = Response(json.dumps(vids))
-
-    if (app.debug):
-        resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+    resp.headers['Access-Control-Allow-Origin'] = ORIGIN
     return resp
 
 @app.route('/upload', methods=['POST'])
@@ -49,18 +50,12 @@ def upload_video():
             raise Exception()
 
         resp = Response(filename)
-
-        if (app.debug):
-            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+        resp.headers['Access-Control-Allow-Origin'] = ORIGIN
         return resp
     except:
         os.remove(path_in)
         resp = Response('')
-
-        if (app.debug):
-            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+        resp.headers['Access-Control-Allow-Origin'] = ORIGIN
         return resp
 
 
@@ -82,34 +77,22 @@ def get_codecs(videoname):
         codecs_string = ','.join(codecs)
 
         resp = Response(codecs_string)
-
-        if (app.debug):
-            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+        resp.headers['Access-Control-Allow-Origin'] = ORIGIN
         return resp
     except:
         resp = Response('')
-
-        if (app.debug):
-            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+        resp.headers['Access-Control-Allow-Origin'] = ORIGIN
         return resp
 
 @app.route('/video/<filename>')
 def get_video(filename):
     try:
         resp = send_from_directory(VIDEOS_DIR, filename)
-
-        if (app.debug):
-            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+        resp.headers['Access-Control-Allow-Origin'] = ORIGIN
         return resp
     except:
         resp = Response('')
-
-        if (app.debug):
-            resp.headers['Access-Control-Allow-Origin'] = DEV_ORIGIN
-
+        resp.headers['Access-Control-Allow-Origin'] = ORIGIN
         return resp
 
 @app.before_first_request
@@ -120,4 +103,4 @@ def start():
         os.mkdir(get_path(VIDEOS_DIR))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
