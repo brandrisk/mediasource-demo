@@ -63,20 +63,6 @@ async function upload() {
 </script>
 
 <style scoped>
-.button {
-    background: black;
-    color: white;
-    border-radius: 5px;
-    padding: 10px;
-    width: fit-content;
-    cursor: pointer;
-    border: 2px solid white;
-}
-
-.button:hover {
-    box-shadow: 0 0 10px white inset;
-}
-
 #fileInput {
     display: none;
 }

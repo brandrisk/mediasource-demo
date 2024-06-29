@@ -1,7 +1,7 @@
 <template>
-    <div v-if="props.filename">
+    <div v-if="src">
         <div id="overlay" @click="playOrPause" class="debug"></div>
-        <video controls autoplay @loadedmetadata="fitOverlay" id="video" ref="video" :src="src"
+        <video @error="src = ''" controls autoplay @loadedmetadata="fitOverlay" id="video" :src="src"
             :width="props.width"></video>
     </div>
     <div v-else id="placeholder" :style="{ width: `${props.width}px` }">No video</div>
@@ -18,53 +18,61 @@ const props = defineProps({
 
 const config = useRuntimeConfig();
 const serverUrl = config.public.serverUrl;
-const video = ref(null);
 const src = ref('');
+const videoURL = ref('');
+const mimeCodec = ref('');
+const ms = ref(null);
 
 watch(src, fitOverlay);
 
 window.addEventListener('resize', fitOverlay);
 
 function playOrPause() {
-    if (video.value.paused) {
-        video.value.play();
+    const video = document.querySelector('#video');
+
+    if (video.paused) {
+        video.play();
     } else {
-        video.value.pause();
+        video.pause();
     }
 }
 
 onMounted(async () => {
-    const videoURL = `${serverUrl}/video/${props.filename}`;
+    videoURL.value = `${serverUrl}/video/${props.filename}`;
 
-    const res = await fetch(`${serverUrl}/codecs/${props.filename}`);
-    const codecs = await res.text();
-    const mimeCodec = `video/mp4; codecs="${codecs}"`;
-
-    if ('MediaSource' in window && MediaSource.isTypeSupported(mimeCodec)) {
-        const mediaSource = new MediaSource;
-        src.value = URL.createObjectURL(mediaSource);
-        mediaSource.addEventListener('sourceopen', sourceOpen);
-    } else {
-        console.error('Unsupported MIME type or codec: ', mimeCodec);
-    }
-
-    function sourceOpen(_) {
-        const mediaSource = this;
-        const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-
-        fetchAB(videoURL, function (buf) {
-            sourceBuffer.addEventListener('updateend', function (_) {
-                mediaSource.endOfStream();
-            });
-
-            sourceBuffer.appendBuffer(buf);
-        });
-    }
-
-    function fetchAB(url, cb) {
-        fetch(url).then(res => res.arrayBuffer()).then(ab => cb(ab));
+    try {
+        const res = await fetch(`${serverUrl}/codecs/${props.filename}`);
+        const codecs = await res.text();
+        mimeCodec.value = `video/mp4; codecs="${codecs}"`;
+        
+        if ('MediaSource' in window && MediaSource.isTypeSupported(mimeCodec.value)) {
+            ms.value = new MediaSource;
+            src.value = URL.createObjectURL(ms.value);
+            ms.value.addEventListener('sourceopen', sourceOpen);
+        } else {
+            console.error('Unsupported MIME type or codec: ', mimeCodec.value);
+        }
+    } catch(e) {
+        src.value = '';
     }
 });
+
+function sourceOpen(_) {
+    const mediaSource = this;
+    const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec.value);
+
+    fetchAB(videoURL.value, function (buf) {
+        sourceBuffer.addEventListener('updateend', function (_) {
+            mediaSource.endOfStream();
+        });
+
+        sourceBuffer.appendBuffer(buf);
+    });
+}
+
+function fetchAB(url, cb) {
+    fetch(url).then(res => res.arrayBuffer()).then(ab => cb(ab));
+}
 
 function fitOverlay() {
     try {
